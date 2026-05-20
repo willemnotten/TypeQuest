@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TypeQuest – Leer Blind Typen</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --bg2: #141720;
+    --bg3: #1c2030;
+    --accent: #00e5a0;
+    --accent2: #7c6fff;
+    --accent3: #ff6b6b;
+    --accent4: #ffd166;
+    --text: #e8eaf0;
+    --text2: #8892a4;
+    --border: #252940;
+    --glow: 0 0 20px rgba(0,229,160,.25);
+    --glow2: 0 0 20px rgba(124,111,255,.25);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,160,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,160,.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .screen { position: relative; z-index: 1; display: none; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ── HEADER ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(13,15,20,.85);
+    backdrop-filter: blur(12px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: 'Space Mono', monospace; font-size: 22px; color: var(--accent); letter-spacing: -1px; }
+  .logo span { color: var(--accent2); }
+  .hud { display: flex; gap: 20px; align-items: center; }
+  .hud-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .hud-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+  .hud-value { font-size: 16px; font-weight: 700; color: var(--accent); font-family: 'Space Mono', monospace; }
+  .xp-bar-wrap { width: 120px; }
+  .xp-bar { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .xp-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); border-radius: 3px; transition: width .5s ease; }
+
+  /* ── HOME SCREEN ── */
+  #screen-home {
+    align-items: center; justify-content: flex-start;
+    padding: 60px 24px;
+  }
+  .hero { text-align: center; max-width: 600px; margin: 0 auto 60px; }
+  .hero h1 { font-size: clamp(36px, 6vw, 64px); font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
+  .hero h1 .hl { color: var(--accent); }
+  .hero h1 .hl2 { color: var(--accent2); }
+  .hero p { font-size: 18px; color: var(--text2); line-height: 1.6; }
+  .stats-bar {
+    display: flex; gap: 32px; justify-content: center;
+    margin: 32px 0 8px;
+  }
+  .stat-pill {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 100px; padding: 8px 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .stat-pill .icon { font-size: 20px; }
+  .stat-pill .val { font-size: 18px; font-weight: 700; font-family: 'Space Mono', monospace; color: var(--accent); }
+  .stat-pill .lbl { font-size: 12px; color: var(--text2); }
+
+  /* Level grid */
+  .levels-section { width: 100%; max-width: 900px; margin: 0 auto; }
+  .section-title {
+    font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text2); margin-bottom: 20px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .levels-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+  .level-card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 16px;
+    padding: 20px; cursor: pointer; transition: all .2s ease; position: relative; overflow: hidden;
+  }
+  .level-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--glow); }
+  .level-card.locked { opacity: .4; cursor: not-allowed; }
+  .level-card.locked:hover { transform: none; box-shadow: none; border-color: var(--border); }
+  .level-card.completed { border-color: rgba(0,229,160,.3); }
+  .level-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    opacity: 0; transition: opacity .2s;
+  }
+  .level-card:hover::before { opacity: 1; }
+  .level-card.completed::before { opacity: 1; }
+  .level-num { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--text2); text-transform: uppercase; margin-bottom: 8px; }
+  .level-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .level-desc { font-size: 13px; color: var(--text2); margin-bottom: 14px; line-height: 1.5; }
+  .level-keys {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px;
+  }
+  .key-badge {
+    font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+    padding: 3px 7px; color: var(--accent);
+  }
+  .level-stars { display: flex; gap: 4px; }
+  .star { font-size: 20px; color: var(--bg3); transition: color .3s; }
+  .star.lit { color: var(--accent4); }
+  .lock-icon { position: absolute; top: 16px; right: 16px; font-size: 20px; color: var(--text2); }
+  .best-badge {
+    font-size: 11px; font-weight: 700; color: var(--text2);
+    font-family: 'Space Mono', monospace;
+    margin-top: 6px;
+  }
+
+  /* ── LESSON SCREEN ── */
+  #screen-lesson { padding: 0; flex-direction: column; }
+  .lesson-header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 16px 32px; background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .btn-back {
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text); border-radius: 10px; padding: 8px 16px;
+    cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;
+    transition: all .2s;
+  }
+  .btn-back:hover { border-color: var(--accent); color: var(--accent); }
+  .lesson-title { font-size: 18px; font-weight: 700; }
+  .lesson-meta { font-size: 13px; color: var(--text2); }
+
+  .live-stats {
+    display: flex; gap: 24px; margin-left: auto; align-items: center;
+  }
+  .live-stat { text-align: center; }
+  .live-stat .val { font-size: 22px; font-weight: 700; font-family: 'Space Mono', monospace; color: var(--accent); }
+  .live-stat .lbl { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* Streak/combo */
+  .streak-display {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 16px; background: var(--bg3); border-radius: 100px;
+    border: 1px solid var(--border);
+  }
+  .streak-fire { font-size: 18px; }
+  .streak-count { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 16px; color: var(--accent4); }
+  .streak-mult { font-size: 11px; color: var(--text2); }
+
+  .lesson-body {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 40px 32px; gap: 40px;
+  }
+
+  /* Hint zone */
+  .hint-zone {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 16px;
+    padding: 16px 24px; font-size: 14px; color: var(--text2); text-align: center;
+    max-width: 560px; width: 100%; line-height: 1.6;
+  }
+  .hint-zone strong { color: var(--accent2); }
+
+  /* Typing area */
+  .typing-area {
+    max-width: 700px; width: 100%;
+    background: var(--bg2); border: 2px solid var(--border); border-radius: 20px;
+    padding: 28px 32px; position: relative; overflow: hidden;
+  }
+  .typing-area::after {
+    content: 'KLIK OM TE BEGINNEN';
+    position: absolute; inset: 0; background: rgba(13,15,20,.8);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; letter-spacing: 3px; color: var(--text2);
+    border-radius: 18px; backdrop-filter: blur(4px);
+    opacity: 0; transition: opacity .2s; pointer-events: none;
+  }
+  .typing-area.inactive::after { opacity: 1; }
+
+  .progress-track { height: 4px; background: var(--bg3); border-radius: 2px; margin-bottom: 20px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--accent2), var(--accent)); transition: width .2s; }
+
+  .text-display {
+    font-family: 'Space Mono', monospace; font-size: clamp(18px, 2.5vw, 26px);
+    line-height: 1.7; letter-spacing: .5px; word-break: break-all;
+    cursor: text;
+  }
+  .ch { position: relative; transition: color .05s; }
+  .ch.done { color: var(--accent); }
+  .ch.wrong { color: var(--accent3); text-decoration: underline; text-decoration-color: var(--accent3); }
+  .ch.current {
+    color: var(--text);
+    background: var(--accent2);
+    border-radius: 3px;
+    animation: blink 1s ease infinite;
+  }
+  .ch.pending { color: var(--text2); }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+  /* Invisible input */
+  #type-input {
+    position: absolute; opacity: 0; width: 1px; height: 1px; top: 0; left: 0;
+    pointer-events: none;
+  }
+
+  /* ── KEYBOARD ── */
+  .keyboard-wrap {
+    max-width: 760px; width: 100%;
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 20px;
+    padding: 24px; user-select: none;
+  }
+  .kb-row { display: flex; justify-content: center; gap: 6px; margin-bottom: 6px; }
+  .kb-key {
+    height: 46px; min-width: 40px; padding: 0 8px;
+    background: var(--bg3); border: 1px solid #2a2f45;
+    border-bottom: 3px solid #1a1d2e;
+    border-radius: 8px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; position: relative;
+    transition: all .1s ease;
+    font-size: 11px; color: var(--text2); font-family: 'Space Mono', monospace;
+  }
+  .kb-key .key-main { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1; }
+  .kb-key.space { min-width: 200px; }
+  .kb-key.wide { min-width: 70px; }
+  .kb-key.wider { min-width: 90px; }
+  .kb-key.widest { min-width: 110px; }
+  .kb-key.inactive { opacity: .25; }
+  .kb-key.active-level {
+    opacity: 1; border-color: rgba(0,229,160,.4);
+    color: var(--accent2);
+  }
+  .kb-key.active-level .key-main { color: var(--accent); }
+  .kb-key.pressed {
+    background: var(--accent2); border-color: var(--accent2);
+    border-bottom-color: #5a51cc; transform: translateY(2px);
+  }
+  .kb-key.pressed .key-main { color: #fff; }
+  .kb-key.target-key {
+    background: var(--bg3); border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(0,229,160,.4);
+  }
+  .kb-key.target-key .key-main { color: var(--accent); }
+  .kb-key.wrong-key { background: rgba(255,107,107,.2); border-color: var(--accent3); }
+  .finger-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    position: absolute; bottom: 5px; opacity: .7;
+  }
+  .f-left  { background: #7c6fff; }
+  .f-right { background: #00e5a0; }
+  .f-thumb { background: #ffd166; }
+
+  /* ── RESULT SCREEN ── */
+  #screen-result {
+    align-items: center; justify-content: center; padding: 40px 24px;
+  }
+  .result-card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 24px;
+    padding: 48px; max-width: 540px; width: 100%; text-align: center;
+  }
+  .result-emoji { font-size: 64px; margin-bottom: 16px; display: block; }
+  .result-title { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
+  .result-subtitle { font-size: 16px; color: var(--text2); margin-bottom: 32px; }
+  .result-stars { display: flex; gap: 12px; justify-content: center; margin-bottom: 32px; }
+  .result-star { font-size: 42px; animation: popIn .4s ease both; }
+  .result-star:nth-child(2) { animation-delay: .15s; }
+  .result-star:nth-child(3) { animation-delay: .3s; }
+  @keyframes popIn { from{transform:scale(0) rotate(-20deg)} to{transform:scale(1) rotate(0)} }
+  .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }
+  .result-stat {
+    background: var(--bg3); border-radius: 14px; padding: 18px;
+    border: 1px solid var(--border);
+  }
+  .result-stat .num { font-size: 32px; font-weight: 800; font-family: 'Space Mono', monospace; color: var(--accent); }
+  .result-stat .lbl { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+  .xp-gain {
+    background: linear-gradient(135deg, rgba(124,111,255,.15), rgba(0,229,160,.15));
+    border: 1px solid rgba(0,229,160,.3); border-radius: 14px;
+    padding: 16px; margin-bottom: 24px; font-size: 20px; font-weight: 700;
+    color: var(--accent);
+  }
+  .xp-gain span { color: var(--text2); font-size: 14px; font-weight: 400; }
+
+  /* Achievements toast */
+  .achievement-toast {
+    position: fixed; bottom: 32px; right: 32px; z-index: 1000;
+    background: var(--bg2); border: 1px solid rgba(255,209,102,.5);
+    border-radius: 16px; padding: 16px 24px; max-width: 320px;
+    display: flex; align-items: center; gap: 14px;
+    animation: slideIn .4s ease; box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  }
+  @keyframes slideIn { from{transform:translateX(120%);opacity:0} to{transform:none;opacity:1} }
+  .ach-icon { font-size: 36px; flex-shrink: 0; }
+  .ach-text .ach-title { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--accent4); text-transform: uppercase; }
+  .ach-text .ach-name { font-size: 16px; font-weight: 700; margin: 2px 0; }
+  .ach-text .ach-desc { font-size: 12px; color: var(--text2); }
+
+  /* XP popup */
+  .xp-popup {
+    position: fixed; z-index: 999; pointer-events: none;
+    font-family: 'Space Mono', monospace; font-weight: 700; font-size: 18px;
+    color: var(--accent); text-shadow: 0 0 10px rgba(0,229,160,.8);
+    animation: floatUp .8s ease both;
+  }
+  @keyframes floatUp { 0%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-50px)} }
+
+  .wrong-shake { animation: shake .3s ease; }
+  @keyframes shake { 0%,100%{transform:none} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 28px; border-radius: 12px; border: none;
+    font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700;
+    cursor: pointer; transition: all .2s;
+  }
+  .btn-primary {
+    background: var(--accent); color: var(--bg);
+    box-shadow: 0 4px 20px rgba(0,229,160,.3);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,229,160,.4); }
+  .btn-secondary {
+    background: var(--bg3); color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+  .btn-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  /* ── ACHIEVEMENTS SCREEN ── */
+  #screen-achievements { padding: 40px 32px; }
+  .ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; max-width: 900px; margin: 24px auto 0; }
+  .ach-card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 16px;
+    padding: 20px; text-align: center; transition: all .2s;
+  }
+  .ach-card.unlocked { border-color: rgba(255,209,102,.4); }
+  .ach-card .ach-i { font-size: 40px; margin-bottom: 10px; }
+  .ach-card .ach-n { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .ach-card .ach-d { font-size: 12px; color: var(--text2); }
+  .ach-card.locked .ach-i { filter: grayscale(1); opacity: .3; }
+  .ach-card.locked .ach-n { color: var(--text2); }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .kb-key { height: 36px; min-width: 28px; font-size: 9px; padding: 0 4px; }
+    .kb-key .key-main { font-size: 10px; }
+    .kb-key.space { min-width: 120px; }
+    .kb-key.wide { min-width: 50px; }
+    .kb-key.wider { min-width: 60px; }
+    .kb-key.widest { min-width: 76px; }
+    .text-display { font-size: 16px; }
+    header { padding: 12px 16px; }
+    .lesson-body { padding: 20px 16px; gap: 24px; }
+    .live-stats { gap: 12px; }
+  }
+
+  /* Confetti */
+  .confetti-piece {
+    position: fixed; width: 10px; height: 10px; z-index: 9999;
+    pointer-events: none; animation: confettiFall linear both;
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* Scroll helper */
+  .levels-section { padding-bottom: 60px; }
+</style>
+</head>
+<body>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="screen-home">
+  <header>
+    <div class="logo">Type<span>Quest</span></div>
+    <div class="hud">
+      <div class="hud-item">
+        <div class="hud-label">Level</div>
+        <div class="hud-value" id="hud-level">1</div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label">XP</div>
+        <div class="xp-bar-wrap">
+          <div class="xp-bar"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
+          <div style="font-size:11px;color:var(--text2);text-align:center;margin-top:2px;" id="xp-label">0 / 100 XP</div>
+        </div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label">🔥 Streak</div>
+        <div class="hud-value" id="hud-streak">0</div>
+      </div>
+      <button class="btn btn-secondary" style="padding:8px 16px;font-size:13px;" onclick="showScreen('achievements')">🏆 Prestaties</button>
+    </div>
+  </header>
+
+  <div style="flex:1;padding:40px 24px;display:flex;flex-direction:column;align-items:center;">
+    <div class="hero">
+      <h1>Word een <span class="hl">typing</span><br><span class="hl2">ninja</span> 🥷</h1>
+      <p>Leer blind typen stap voor stap, van de basisrij tot volledige snelheid. Unlock levels, verdien XP en verzamel badges!</p>
+      <div class="stats-bar">
+        <div class="stat-pill">
+          <div class="icon">⌨️</div>
+          <div><div class="val" id="stat-lessons">0</div><div class="lbl">Lessen voltooid</div></div>
+        </div>
+        <div class="stat-pill">
+          <div class="icon">🎯</div>
+          <div><div class="val" id="stat-accuracy">–</div><div class="lbl">Beste nauwk.</div></div>
+        </div>
+        <div class="stat-pill">
+          <div class="icon">⚡</div>
+          <div><div class="val" id="stat-wpm">–</div><div class="lbl">Beste WPM</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="levels-section">
+      <div class="section-title">📚 Kies een Level</div>
+      <div class="levels-grid" id="levels-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- LESSON SCREEN -->
+<div class="screen" id="screen-lesson">
+  <div class="lesson-header">
+    <button class="btn-back" onclick="goHome()">← Terug</button>
+    <div>
+      <div class="lesson-title" id="lesson-title-el">–</div>
+      <div class="lesson-meta" id="lesson-meta-el">–</div>
+    </div>
+    <div class="live-stats">
+      <div class="live-stat">
+        <div class="val" id="live-wpm">0</div>
+        <div class="lbl">WPM</div>
+      </div>
+      <div class="live-stat">
+        <div class="val" id="live-acc">100%</div>
+        <div class="lbl">Nauwk.</div>
+      </div>
+      <div class="streak-display">
+        <span class="streak-fire">🔥</span>
+        <span class="streak-count" id="live-streak">0</span>
+        <span class="streak-mult" id="live-mult">×1</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="lesson-body">
+    <div class="hint-zone" id="hint-zone"></div>
+
+    <div class="typing-area inactive" id="typing-area" onclick="activateTyping()">
+      <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="text-display" id="text-display"></div>
+      <input type="text" id="type-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+
+    <div class="keyboard-wrap" id="keyboard-wrap"></div>
+  </div>
+</div>
+
+<!-- RESULT SCREEN -->
+<div class="screen" id="screen-result">
+  <div class="result-card" id="result-card">
+    <span class="result-emoji" id="result-emoji">🎉</span>
+    <div class="result-title" id="result-title">Level Voltooid!</div>
+    <div class="result-subtitle" id="result-subtitle">–</div>
+    <div class="result-stars" id="result-stars"></div>
+    <div class="xp-gain" id="xp-gain-display">+<span id="xp-gained">0</span> XP</div>
+    <div class="result-grid">
+      <div class="result-stat"><div class="num" id="res-wpm">0</div><div class="lbl">WPM</div></div>
+      <div class="result-stat"><div class="num" id="res-acc">0%</div><div class="lbl">Nauwkeurigheid</div></div>
+      <div class="result-stat"><div class="num" id="res-time">0s</div><div class="lbl">Tijd</div></div>
+      <div class="result-stat"><div class="num" id="res-streak">0</div><div class="lbl">Max Streak</div></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="btn-retry" onclick="retryLevel()">🔄 Opnieuw</button>
+      <button class="btn btn-primary" id="btn-next" onclick="nextLevel()">Volgend Level →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS SCREEN -->
+<div class="screen" id="screen-achievements">
+  <header>
+    <div class="logo">Type<span>Quest</span></div>
+    <button class="btn btn-secondary" onclick="showScreen('home')">← Menu</button>
+  </header>
+  <div style="max-width:900px;margin:0 auto;padding:40px 24px;">
+    <div class="section-title">🏆 Prestaties & Badges</div>
+    <div class="ach-grid" id="ach-grid"></div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+
+const LEVELS = [
+  {
+    id: 1,
+    title: 'De Thuisrij',
+    desc: 'De basis van alles. Leer de thuispositie van je vingers kennen.',
+    keys: ['a','s','d','f','j','k','l',';'],
+    activeKeys: ['a','s','d','f','j','k','l',';'],
+    hint: 'Leg je vingers op <strong>ASDF</strong> (links) en <strong>JKL;</strong> (rechts). Dit is je thuispositie!',
+    texts: [
+      'aaa sss ddd fff jjj kkk lll',
+      'asdf jkl; asdf jkl;',
+      'asd asd jkl jkl fds lkj',
+      'all fall lads ask sad lad',
+      'a sad lad falls as flasks fall',
+    ],
+    minWpm: 0, minAcc: 60,
+  },
+  {
+    id: 2,
+    title: 'Spatiebalk & Woorden',
+    desc: 'Combineer thuisrij toetsen tot echte woorden met de spatiebalk.',
+    keys: ['a','s','d','f','j','k','l',';',' '],
+    activeKeys: ['a','s','d','f','j','k','l',';','space'],
+    hint: 'Gebruik je <strong>rechter duim</strong> voor de spatiebalk. Kijk niet naar je handen!',
+    texts: [
+      'sad lad asks all fall flask',
+      'a lad asks a lass all is sad',
+      'falls asks fads jacks flasks lacks',
+      'a sad lass falls as a lad calls',
+      'ask a lass as a lad falls skal dal',
+    ],
+    minWpm: 5, minAcc: 65,
+  },
+  {
+    id: 3,
+    title: 'E en I',
+    desc: 'Voeg E (middelvinger links) en I (middelvinger rechts) toe.',
+    keys: ['a','s','d','f','j','k','l',';','e','i'],
+    activeKeys: ['a','s','d','f','j','k','l',';','e','i','space'],
+    hint: 'E: <strong>middelvinger links</strong> omhoog. I: <strong>middelvinger rechts</strong> omhoog. Beweeg alleen die vinger!',
+    texts: [
+      'edge idea side file life',
+      'feel aide died kill fill',
+      'a faded ideal aide is fake',
+      'kids like figs as flies die like ideas',
+      'ideal files slide aside as kids fiddle',
+    ],
+    minWpm: 8, minAcc: 70,
+  },
+  {
+    id: 4,
+    title: 'T en O',
+    desc: 'Voeg T (wijsvinger links) en O (ringvinger rechts) toe.',
+    keys: ['t','o'],
+    activeKeys: ['a','s','d','f','j','k','l',';','e','i','t','o','space'],
+    hint: 'T: <strong>wijsvinger links</strong> omhoog. O: <strong>ringvinger rechts</strong> omhoog. Zorg dat andere vingers op de thuisrij blijven!',
+    texts: [
+      'tot dot lot hot toot told',
+      'to do so also told fold',
+      'the slot fits like a tool',
+      'tools sell at the old stall',
+      'little details total the odd lot',
+    ],
+    minWpm: 10, minAcc: 72,
+  },
+  {
+    id: 5,
+    title: 'R en U',
+    desc: 'Voeg R (wijsvinger links) en U (wijsvinger rechts) toe.',
+    keys: ['r','u'],
+    activeKeys: ['a','s','d','f','j','k','l',';','e','i','t','o','r','u','space'],
+    hint: 'R en U worden allebei met de <strong>wijsvingers</strong> getypt. Links voor R, rechts voor U.',
+    texts: [
+      'rule true road four tour',
+      'our rural tour sure lure',
+      'rest the tired old router',
+      'the future rules our desires',
+      'true friends are real solid trust',
+    ],
+    minWpm: 12, minAcc: 74,
+  },
+  {
+    id: 6,
+    title: 'G en H',
+    desc: 'G en H liggen in het midden — beide wijsvingers strekken!',
+    keys: ['g','h'],
+    activeKeys: ['a','s','d','f','g','h','j','k','l',';','e','i','t','o','r','u','space'],
+    hint: '<strong>G</strong>: linker wijsvinger naar rechts. <strong>H</strong>: rechter wijsvinger naar links. Oefen de oversteek!',
+    texts: [
+      'high right light great huge eight',
+      'height grief fight gather shore',
+      'the great light shone through the fog',
+      'gather the eight high heels together',
+      'her ghostly figure drifted right through',
+    ],
+    minWpm: 15, minAcc: 75,
+  },
+  {
+    id: 7,
+    title: 'Bovenste rij deel 1',
+    desc: 'Q, W, Y en P — de buitenste toetsen van de bovenste rij.',
+    keys: ['q','w','y','p'],
+    activeKeys: ['q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h','j','k','l',';','space'],
+    hint: 'Q: <strong>pink links</strong>. W: <strong>ringvinger links</strong>. Y: <strong>wijsvinger rechts</strong>. P: <strong>pink rechts</strong>.',
+    texts: [
+      'why pay way play way pay',
+      'type quite well your pretty play',
+      'your quiet power truly typifies joy',
+      'we play quite well perhaps too well',
+      'you wrote pretty poetry with pure joy',
+    ],
+    minWpm: 18, minAcc: 75,
+  },
+  {
+    id: 8,
+    title: 'Onderste rij',
+    desc: 'Z, X, C, V, B, N en M — de onderste rij is de lastigste!',
+    keys: ['z','x','c','v','b','n','m'],
+    activeKeys: ['q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h','j','k','l',';','z','x','c','v','b','n','m','space'],
+    hint: 'Vingers bewegen <strong>omlaag</strong> naar de onderste rij. Houd je polsen stil en beweeg alleen je vingers!',
+    texts: [
+      'can vex zinc van box',
+      'zinc box cave verb exam',
+      'cab mix van zone bench',
+      'brave men excel in complex moves',
+      'max zinc above the level can vibrate',
+    ],
+    minWpm: 20, minAcc: 77,
+  },
+  {
+    id: 9,
+    title: 'Volledige Toetsenbord',
+    desc: 'Alle letters gecombineerd. Schrijf echte zinnen!',
+    keys: [],
+    activeKeys: ['all'],
+    hint: 'Gebruik het <strong>complete toetsenbord</strong>. Probeer niet naar je vingers te kijken — vertrouw je spiergeheugen!',
+    texts: [
+      'the quick brown fox jumps over a lazy dog',
+      'how vexingly quick daft zebras jump',
+      'pack my box with five dozen liquor jugs',
+      'sphinx of black quartz judge my vow',
+      'heavy boxes perform quick waltzes and jive',
+    ],
+    minWpm: 25, minAcc: 80,
+  },
+  {
+    id: 10,
+    title: '🚀 Snelheidstest',
+    desc: 'Alles wat je geleerd hebt op volle snelheid! Haal je persoonlijk record.',
+    keys: [],
+    activeKeys: ['all'],
+    hint: '⚡ <strong>Snelheidstest!</strong> Type zo snel en nauwkeurig mogelijk. Probeer 30+ WPM te halen!',
+    texts: [
+      'the sun rises over the quiet town while birds sing and cats stretch on warm stones',
+      'she sold sea shells by the seashore and the shells she sold were surely sea shells',
+      'if peter piper picked a peck of pickled peppers where are the pickled peppers peter picked',
+      'how much wood would a woodchuck chuck if a woodchuck could chuck wood',
+      'unique new york you know you need unique new york you know you need it',
+    ],
+    minWpm: 30, minAcc: 82,
+  },
+];
+
+const ACHIEVEMENTS = [
+  { id: 'first_lesson',   icon: '🌱', name: 'Eerste Stap',      desc: 'Voltooi je eerste les',              check: s => s.lessonsCompleted >= 1 },
+  { id: 'speed_demon',    icon: '⚡', name: 'Snelheidsdemon',   desc: 'Haal 40+ WPM',                        check: s => s.bestWpm >= 40 },
+  { id: 'perfectionist',  icon: '💎', name: 'Perfectionist',    desc: 'Haal 100% nauwkeurigheid',            check: s => s.bestAccuracy >= 100 },
+  { id: 'streak_10',      icon: '🔥', name: 'Op Dreef',          desc: '10 toetsen foutloos achter elkaar',  check: s => s.bestStreak >= 10 },
+  { id: 'streak_50',      icon: '🌋', name: 'Ontketend',         desc: '50 toetsen foutloos',                check: s => s.bestStreak >= 50 },
+  { id: 'level_5',        icon: '🏆', name: 'Halfweg',           desc: 'Bereik niveau 5',                    check: s => Object.keys(s.starsPerLevel).filter(k => s.starsPerLevel[k] > 0).length >= 5 },
+  { id: 'all_levels',     icon: '👑', name: 'Toets Meester',    desc: 'Voltooi alle 10 niveaus',             check: s => Object.keys(s.starsPerLevel).filter(k => s.starsPerLevel[k] > 0).length >= 10 },
+  { id: 'xp_500',         icon: '💫', name: 'XP Verzamelaar',   desc: 'Verdien 500 totale XP',               check: s => s.totalXpEarned >= 500 },
+  { id: 'three_stars',    icon: '⭐', name: 'Driestarren',       desc: '3 sterren op een level',             check: s => Object.values(s.starsPerLevel).some(v => v >= 3) },
+  { id: 'night_owl',      icon: '🦉', name: 'Nachtbraker',      desc: 'Speel na middernacht',                check: s => s.playedLate },
+  { id: 'retry_warrior',  icon: '🛡️', name: 'Volhouder',        desc: 'Herhaal een level 3× of meer',       check: s => s.maxRetries >= 3 },
+  { id: 'speed_30',       icon: '🚗', name: 'Snelrijder',        desc: 'Haal 30+ WPM',                       check: s => s.bestWpm >= 30 },
+];
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+
+let state = {
+  xp: 0, playerLevel: 1,
+  starsPerLevel: {},
+  bestWpmPerLevel: {},
+  bestAccPerLevel: {},
+  lessonsCompleted: 0,
+  bestWpm: 0,
+  bestAccuracy: 0,
+  bestStreak: 0,
+  totalXpEarned: 0,
+  dailyStreak: 0,
+  unlockedAchievements: [],
+  playedLate: false,
+  maxRetries: 0,
+  retriesThisLevel: {},
+};
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('typequest_v2');
+    if (s) state = { ...state, ...JSON.parse(s) };
+  } catch(e) {}
+}
+
+function saveState() {
+  localStorage.setItem('typequest_v2', JSON.stringify(state));
+}
+
+const XP_PER_LEVEL = [0, 100, 200, 350, 550, 800, 1100, 1500, 2000, 2600, 3300];
+function getPlayerLevel() {
+  let lvl = 1;
+  while (lvl < XP_PER_LEVEL.length - 1 && state.xp >= XP_PER_LEVEL[lvl]) lvl++;
+  return lvl;
+}
+function getXpForCurrentLevel() { return XP_PER_LEVEL[state.playerLevel - 1] || 0; }
+function getXpForNextLevel() { return XP_PER_LEVEL[state.playerLevel] || 9999; }
+
+// ─────────────────────────────────────────────
+// KEYBOARD LAYOUT
+// ─────────────────────────────────────────────
+
+const KB_ROWS = [
+  [['`','`'],['1','1'],['2','2'],['3','3'],['4','4'],['5','5'],['6','6'],['7','7'],['8','8'],['9','9'],['0','0'],['-','-'],['=','='],['⌫','back','widest']],
+  [['Tab','tab','wide'],['q','q'],['w','w'],['e','e'],['r','r'],['t','t'],['y','y'],['u','u'],['i','i'],['o','o'],['p','p'],['[','['],[']',']'],['\\','\\']],
+  [['Caps','caps','wider'],['a','a'],['s','s'],['d','d'],['f','f'],['g','g'],['h','h'],['j','j'],['k','k'],['l','l'],[';',';'],["'","'"],['↵','enter','wider']],
+  [['⇧','shift','widest'],['z','z'],['x','x'],['c','c'],['v','v'],['b','b'],['n','n'],['m','m'],[',',','],['.','.'],['/','/'],['⇧','shift2','widest']],
+  [['Space','space','space']],
+];
+
+// Finger assignments (0=left pinky, 1=left ring, 2=left mid, 3=left index, 4=left index stretch, 5=right index stretch, 6=right index, 7=right mid, 8=right ring, 9=right pinky, 10=thumb)
+const FINGER_MAP = {
+  '`':0,'1':0,'q':0,'a':0,'z':0,
+  '2':1,'w':1,'s':1,'x':1,
+  '3':2,'e':2,'d':2,'c':2,
+  '4':3,'r':3,'f':3,'v':3,
+  '5':4,'t':4,'g':4,'b':4,
+  '6':5,'y':5,'h':5,'n':5,
+  '7':6,'u':6,'j':6,'m':6,
+  '8':7,'i':7,'k':7,',':7,
+  '9':8,'o':8,'l':8,'.':8,
+  '0':9,'p':9,';':9,'/':9,'-':9,'[':9,"'":9,
+  '=':9,']':9,'\\':9,
+  'space':10,
+};
+
+function renderKeyboard() {
+  const wrap = document.getElementById('keyboard-wrap');
+  wrap.innerHTML = '';
+  KB_ROWS.forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'kb-row';
+    row.forEach(([label, id, cls='']) => {
+      const key = document.createElement('div');
+      key.className = 'kb-key ' + cls;
+      key.id = 'kb-' + id;
+      const mainSpan = document.createElement('span');
+      mainSpan.className = 'key-main';
+      mainSpan.textContent = label;
+      key.appendChild(mainSpan);
+      const finger = FINGER_MAP[id];
+      if (finger !== undefined) {
+        const dot = document.createElement('div');
+        dot.className = 'finger-dot ' + (finger <= 4 ? 'f-left' : finger === 10 ? 'f-thumb' : 'f-right');
+        key.appendChild(dot);
+      }
+      rowEl.appendChild(key);
+    });
+    wrap.appendChild(rowEl);
+  });
+}
+
+function updateKeyboardForLevel(level) {
+  const all = document.querySelectorAll('.kb-key');
+  all.forEach(k => { k.classList.remove('active-level','inactive'); });
+  if (level.activeKeys.includes('all')) {
+    // All active
+    all.forEach(k => k.classList.add('active-level'));
+    return;
+  }
+  all.forEach(k => {
+    const id = k.id.replace('kb-','');
+    if (level.activeKeys.includes(id)) k.classList.add('active-level');
+    else k.classList.add('inactive');
+  });
+}
+
+function flashKey(char, ok) {
+  const id = char === ' ' ? 'space' : char.toLowerCase();
+  const el = document.getElementById('kb-' + id);
+  if (!el) return;
+  el.classList.add(ok ? 'pressed' : 'wrong-key');
+  setTimeout(() => el.classList.remove('pressed','wrong-key'), ok ? 120 : 300);
+}
+
+function highlightTargetKey(char) {
+  document.querySelectorAll('.kb-key').forEach(k => k.classList.remove('target-key'));
+  if (!char) return;
+  const id = char === ' ' ? 'space' : char.toLowerCase();
+  const el = document.getElementById('kb-' + id);
+  if (el) el.classList.add('target-key');
+}
+
+// ─────────────────────────────────────────────
+// LEVEL SELECTION
+// ─────────────────────────────────────────────
+
+function isUnlocked(idx) {
+  if (idx === 0) return true;
+  return (state.starsPerLevel[idx] || 0) > 0 || (state.starsPerLevel[LEVELS[idx-1].id] || 0) > 0;
+}
+
+function renderLevels() {
+  const grid = document.getElementById('levels-grid');
+  grid.innerHTML = '';
+  LEVELS.forEach((lvl, idx) => {
+    const unlocked = isUnlocked(idx);
+    const stars = state.starsPerLevel[lvl.id] || 0;
+    const bestWpm = state.bestWpmPerLevel[lvl.id];
+    const bestAcc = state.bestAccPerLevel[lvl.id];
+
+    const card = document.createElement('div');
+    card.className = 'level-card' + (unlocked ? '' : ' locked') + (stars > 0 ? ' completed' : '');
+
+    let starsHtml = [1,2,3].map(i => `<span class="star${stars>=i?' lit':''}">★</span>`).join('');
+    let keysHtml = lvl.keys.length > 0
+      ? lvl.keys.map(k => `<span class="key-badge">${k.toUpperCase()}</span>`).join('')
+      : '<span class="key-badge">Alle</span>';
+    let bestHtml = bestWpm ? `<div class="best-badge">Best: ${bestWpm} WPM · ${bestAcc}%</div>` : '';
+    let lockHtml = unlocked ? '' : '<div class="lock-icon">🔒</div>';
+
+    card.innerHTML = `
+      <div class="level-num">Level ${idx + 1}</div>
+      <div class="level-title">${lvl.title}</div>
+      <div class="level-desc">${lvl.desc}</div>
+      <div class="level-keys">${keysHtml}</div>
+      <div class="level-stars">${starsHtml}</div>
+      ${bestHtml}
+      ${lockHtml}
+    `;
+
+    if (unlocked) card.addEventListener('click', () => startLevel(idx));
+    grid.appendChild(card);
+  });
+}
+
+function renderHud() {
+  state.playerLevel = getPlayerLevel();
+  document.getElementById('hud-level').textContent = state.playerLevel;
+  document.getElementById('hud-streak').textContent = state.dailyStreak;
+  const cur = getXpForCurrentLevel(), nxt = getXpForNextLevel();
+  const pct = Math.min(100, ((state.xp - cur) / (nxt - cur)) * 100);
+  document.getElementById('xp-bar').style.width = pct + '%';
+  document.getElementById('xp-label').textContent = `${state.xp - cur} / ${nxt - cur} XP`;
+
+  const totalLessons = Object.values(state.starsPerLevel).filter(v => v > 0).length;
+  document.getElementById('stat-lessons').textContent = totalLessons;
+  document.getElementById('stat-wpm').textContent = state.bestWpm ? state.bestWpm + ' wpm' : '–';
+  document.getElementById('stat-accuracy').textContent = state.bestAccuracy ? state.bestAccuracy + '%' : '–';
+}
+
+// ─────────────────────────────────────────────
+// LESSON ENGINE
+// ─────────────────────────────────────────────
+
+let currentLevelIdx = 0;
+let currentText = '';
+let typed = [];
+let errors = 0;
+let streak = 0;
+let maxStreak = 0;
+let totalTyped = 0;
+let startTime = null;
+let timerInterval = null;
+let lessonActive = false;
+let lessonDone = false;
+let currentTextIdx = 0;
+let totalCorrect = 0;
+let levelErrors = 0;
+let levelTotal = 0;
+
+function startLevel(idx) {
+  currentLevelIdx = idx;
+  const lvl = LEVELS[idx];
+  streak = 0; maxStreak = 0; totalTyped = 0; errors = 0;
+  startTime = null; lessonActive = false; lessonDone = false;
+  totalCorrect = 0; levelErrors = 0; levelTotal = 0;
+  currentTextIdx = 0;
+
+  document.getElementById('lesson-title-el').textContent = `Level ${idx+1}: ${lvl.title}`;
+  document.getElementById('lesson-meta-el').textContent = `${lvl.texts.length} oefenzinnen`;
+  document.getElementById('hint-zone').innerHTML = lvl.hint;
+  document.getElementById('live-wpm').textContent = '0';
+  document.getElementById('live-acc').textContent = '100%';
+  document.getElementById('live-streak').textContent = '0';
+  document.getElementById('live-mult').textContent = '×1';
+
+  renderKeyboard();
+  updateKeyboardForLevel(lvl);
+  loadText(0);
+  showScreen('lesson');
+  setTimeout(() => document.getElementById('typing-area').click(), 300);
+}
+
+function loadText(textIdx) {
+  const lvl = LEVELS[currentLevelIdx];
+  currentText = lvl.texts[textIdx] || lvl.texts[0];
+  typed = [];
+  renderText();
+  document.getElementById('type-input').value = '';
+  document.getElementById('prog-fill').style.width = '0%';
+  highlightTargetKey(currentText[0]);
+}
+
+function renderText() {
+  const el = document.getElementById('text-display');
+  el.innerHTML = '';
+  const cursor = typed.length;
+  for (let i = 0; i < currentText.length; i++) {
+    const span = document.createElement('span');
+    span.className = 'ch';
+    const ch = currentText[i] === ' ' ? '\u00a0' : currentText[i];
+    span.textContent = ch;
+    if (i < cursor) {
+      span.classList.add(typed[i] === currentText[i] ? 'done' : 'wrong');
+    } else if (i === cursor) {
+      span.classList.add('current');
+    } else {
+      span.classList.add('pending');
+    }
+    el.appendChild(span);
+  }
+}
+
+function activateTyping() {
+  const area = document.getElementById('typing-area');
+  area.classList.remove('inactive');
+  const input = document.getElementById('type-input');
+  input.focus();
+  if (!lessonActive) {
+    lessonActive = true;
+    startTime = Date.now();
+    timerInterval = setInterval(updateLiveStats, 500);
+  }
+}
+
+function updateLiveStats() {
+  if (!startTime || !lessonActive) return;
+  const secs = (Date.now() - startTime) / 1000;
+  const words = (totalCorrect / 5);
+  const wpm = secs > 0 ? Math.round((words / secs) * 60) : 0;
+  const acc = levelTotal > 0 ? Math.round(((levelTotal - levelErrors) / levelTotal) * 100) : 100;
+  document.getElementById('live-wpm').textContent = wpm;
+  document.getElementById('live-acc').textContent = acc + '%';
+}
+
+document.getElementById('type-input').addEventListener('keydown', e => {
+  if (!lessonActive) { activateTyping(); return; }
+  if (lessonDone) return;
+  if (e.key === 'Backspace') {
+    e.preventDefault();
+    if (typed.length > 0) {
+      typed.pop();
+      streak = 0;
+      renderText();
+      updateProgress();
+      highlightTargetKey(currentText[typed.length]);
+    }
+    return;
+  }
+  if (e.key.length !== 1) return;
+  e.preventDefault();
+  handleChar(e.key);
+});
+
+function handleChar(key) {
+  const expected = currentText[typed.length];
+  if (expected === undefined) return;
+  levelTotal++;
+
+  if (key === expected) {
+    typed.push(key);
+    streak++;
+    totalCorrect++;
+    if (streak > maxStreak) { maxStreak = streak; if (streak > state.bestStreak) state.bestStreak = streak; }
+    flashKey(key, true);
+    showXpPopup(key);
+  } else {
+    typed.push(key);
+    streak = 0;
+    levelErrors++;
+    errors++;
+    flashKey(expected, false);
+    shakeTypingArea();
+  }
+
+  updateStreakDisplay();
+  renderText();
+  updateProgress();
+
+  const nextChar = currentText[typed.length];
+  highlightTargetKey(nextChar || null);
+
+  if (typed.length >= currentText.length) {
+    const lvl = LEVELS[currentLevelIdx];
+    currentTextIdx++;
+    if (currentTextIdx < lvl.texts.length) {
+      setTimeout(() => {
+        loadText(currentTextIdx);
+        highlightTargetKey(lvl.texts[currentTextIdx]?.[0]);
+      }, 400);
+    } else {
+      finishLevel();
+    }
+  }
+}
+
+function updateProgress() {
+  const lvl = LEVELS[currentLevelIdx];
+  const totalChars = lvl.texts.reduce((s, t) => s + t.length, 0);
+  const done = lvl.texts.slice(0, currentTextIdx).reduce((s, t) => s + t.length, 0) + typed.length;
+  document.getElementById('prog-fill').style.width = Math.min(100, (done / totalChars) * 100) + '%';
+}
+
+function updateStreakDisplay() {
+  const mult = streak >= 30 ? 4 : streak >= 15 ? 3 : streak >= 5 ? 2 : 1;
+  document.getElementById('live-streak').textContent = streak;
+  document.getElementById('live-mult').textContent = `×${mult}`;
+}
+
+function shakeTypingArea() {
+  const a = document.getElementById('typing-area');
+  a.classList.add('wrong-shake');
+  setTimeout(() => a.classList.remove('wrong-shake'), 400);
+}
+
+function showXpPopup(key) {
+  if (Math.random() > 0.15) return;
+  const el = document.createElement('div');
+  el.className = 'xp-popup';
+  el.textContent = '+1';
+  const area = document.getElementById('typing-area').getBoundingClientRect();
+  el.style.left = (area.left + Math.random() * area.width * 0.8) + 'px';
+  el.style.top = (area.top + 20) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+function finishLevel() {
+  lessonDone = true;
+  clearInterval(timerInterval);
+  const secs = (Date.now() - startTime) / 1000;
+  const wpm = Math.round((totalCorrect / 5) / (secs / 60));
+  const acc = levelTotal > 0 ? Math.round(((levelTotal - levelErrors) / levelTotal) * 100) : 100;
+  const lvl = LEVELS[currentLevelIdx];
+
+  // Stars
+  let stars = 1;
+  if (acc >= 90 && wpm >= lvl.minWpm) stars = 2;
+  if (acc >= 95 && wpm >= lvl.minWpm * 1.5) stars = 3;
+
+  const prevStars = state.starsPerLevel[lvl.id] || 0;
+  if (stars > prevStars) state.starsPerLevel[lvl.id] = stars;
+
+  // XP
+  const baseXp = 20 + (currentLevelIdx * 10);
+  const accBonus = Math.round((acc / 100) * 30);
+  const wpmBonus = Math.min(30, Math.round(wpm / 2));
+  const starBonus = stars * 10;
+  const xpGained = baseXp + accBonus + wpmBonus + starBonus;
+  state.xp += xpGained;
+  state.totalXpEarned += xpGained;
+
+  // Bests
+  if (wpm > state.bestWpm) state.bestWpm = wpm;
+  if (acc > state.bestAccuracy) state.bestAccuracy = acc;
+  if (!state.bestWpmPerLevel[lvl.id] || wpm > state.bestWpmPerLevel[lvl.id]) state.bestWpmPerLevel[lvl.id] = wpm;
+  if (!state.bestAccPerLevel[lvl.id] || acc > state.bestAccPerLevel[lvl.id]) state.bestAccPerLevel[lvl.id] = acc;
+  state.lessonsCompleted++;
+
+  // Daily streak & late night
+  const hour = new Date().getHours();
+  if (hour >= 0 && hour < 4) state.playedLate = true;
+
+  // Retry tracking
+  if (!state.retriesThisLevel[lvl.id]) state.retriesThisLevel[lvl.id] = 0;
+  else {
+    state.retriesThisLevel[lvl.id]++;
+    state.maxRetries = Math.max(state.maxRetries, state.retriesThisLevel[lvl.id]);
+  }
+
+  state.playerLevel = getPlayerLevel();
+  saveState();
+  checkAchievements();
+
+  showResult({ wpm, acc, secs, stars, xpGained, levelIdx: currentLevelIdx });
+}
+
+// ─────────────────────────────────────────────
+// RESULT SCREEN
+// ─────────────────────────────────────────────
+
+function showResult({ wpm, acc, secs, stars, xpGained, levelIdx }) {
+  const emojis = ['', '💪', '🎉', '🌟'];
+  const titles = ['', 'Goed gedaan!', 'Geweldig!', 'Perfect!'];
+  const subtitles = acc >= 95
+    ? 'Indrukwekkende nauwkeurigheid!'
+    : wpm > 30
+    ? 'Wat een snelheid!'
+    : 'Blijf oefenen, je wordt beter!';
+
+  document.getElementById('result-emoji').textContent = emojis[stars] || '👍';
+  document.getElementById('result-title').textContent = titles[stars] || 'Goed geprobeerd!';
+  document.getElementById('result-subtitle').textContent = subtitles;
+  document.getElementById('xp-gained').textContent = '+' + xpGained;
+
+  const starsEl = document.getElementById('result-stars');
+  starsEl.innerHTML = [1,2,3].map((i, idx) =>
+    `<span class="result-star" style="${stars>=i?'filter:drop-shadow(0 0 8px #ffd166)':'filter:grayscale(1) opacity(.3)'}"
+    ${stars>=i?`style="animation-delay:${idx*.15}s"`:''}>${stars>=i?'⭐':'☆'}</span>`
+  ).join('');
+
+  document.getElementById('res-wpm').textContent = wpm;
+  document.getElementById('res-acc').textContent = acc + '%';
+  document.getElementById('res-time').textContent = Math.round(secs) + 's';
+  document.getElementById('res-streak').textContent = maxStreak;
+
+  const nextBtn = document.getElementById('btn-next');
+  nextBtn.style.display = levelIdx < LEVELS.length - 1 ? '' : 'none';
+
+  if (stars === 3) spawnConfetti();
+  showScreen('result');
+}
+
+function retryLevel() {
+  startLevel(currentLevelIdx);
+}
+
+function nextLevel() {
+  if (currentLevelIdx < LEVELS.length - 1) startLevel(currentLevelIdx + 1);
+}
+
+// ─────────────────────────────────────────────
+// ACHIEVEMENTS
+// ─────────────────────────────────────────────
+
+function checkAchievements() {
+  ACHIEVEMENTS.forEach(ach => {
+    if (!state.unlockedAchievements.includes(ach.id) && ach.check(state)) {
+      state.unlockedAchievements.push(ach.id);
+      saveState();
+      showAchievementToast(ach);
+    }
+  });
+}
+
+function showAchievementToast(ach) {
+  const t = document.createElement('div');
+  t.className = 'achievement-toast';
+  t.innerHTML = `
+    <div class="ach-icon">${ach.icon}</div>
+    <div class="ach-text">
+      <div class="ach-title">🏆 Prestatie Vrijgespeeld!</div>
+      <div class="ach-name">${ach.name}</div>
+      <div class="ach-desc">${ach.desc}</div>
+    </div>
+  `;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.transition = 'opacity .5s'; t.style.opacity = '0'; }, 3500);
+  setTimeout(() => t.remove(), 4000);
+}
+
+function renderAchievements() {
+  const grid = document.getElementById('ach-grid');
+  grid.innerHTML = '';
+  ACHIEVEMENTS.forEach(ach => {
+    const unlocked = state.unlockedAchievements.includes(ach.id);
+    const card = document.createElement('div');
+    card.className = 'ach-card ' + (unlocked ? 'unlocked' : 'locked');
+    card.innerHTML = `
+      <div class="ach-i">${ach.icon}</div>
+      <div class="ach-n">${ach.name}</div>
+      <div class="ach-d">${unlocked ? ach.desc : '???'}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ─────────────────────────────────────────────
+// CONFETTI
+// ─────────────────────────────────────────────
+
+function spawnConfetti() {
+  const colors = ['#00e5a0','#7c6fff','#ffd166','#ff6b6b','#fff'];
+  for (let i = 0; i < 60; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.cssText = `
+      left:${Math.random()*100}vw;
+      top:-20px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      border-radius:${Math.random()>0.5?'50%':'2px'};
+      width:${6+Math.random()*8}px;
+      height:${6+Math.random()*8}px;
+      animation-duration:${1.5+Math.random()*2}s;
+      animation-delay:${Math.random()*.5}s;
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 4000);
+  }
+}
+
+// ─────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  if (name === 'home') { renderLevels(); renderHud(); }
+  if (name === 'achievements') renderAchievements();
+}
+
+function goHome() {
+  clearInterval(timerInterval);
+  lessonActive = false;
+  showScreen('home');
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+
+loadState();
+renderKeyboard();
+renderHud();
+renderLevels();
+checkAchievements();
+
+// Keyboard shortcut: ESC to go home
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const lesson = document.getElementById('screen-lesson');
+    if (lesson.classList.contains('active')) goHome();
+  }
+});
+</script>
+</body>
+</html>
